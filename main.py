@@ -15,6 +15,8 @@ class DNDFogOfWarAppState:
 class DNDFogOfWarAppConfig:
     def __init__(self):
         self.brush_radius = 30
+        self.min_brush_radius = 10
+        self.max_brush_radius = 300
         self.brush_radius_increment = 10
         self.image_movement_speed = 500
         self.zoom_in_scale = 1.1
@@ -69,7 +71,7 @@ class DNDFogOfWarApp:
         resized_obj = pygame.transform.scale(obj, (new_obj_width, new_obj_height))
         return resized_obj
 
-    def handle_mouse_wheel_up(self):
+    def zoom_in(self):
         self.image = pygame.transform.smoothscale(
             self.image,
             (
@@ -85,7 +87,7 @@ class DNDFogOfWarApp:
             ),
         )
 
-    def handle_mouse_wheel_down(self):
+    def zoom_out(self):
         self.image = pygame.transform.smoothscale(
             self.image,
             (
@@ -105,6 +107,18 @@ class DNDFogOfWarApp:
         self.image = pygame.transform.rotate(self.image, 90)
         self.black_layer = pygame.transform.rotate(self.black_layer, 90)
 
+    def increase_brush_size(self):
+        self.app_config.brush_radius = min(
+            self.app_config.max_brush_radius,
+            self.app_config.brush_radius + self.app_config.brush_radius_increment,
+        )
+
+    def decrease_brush_size(self):
+        self.app_config.brush_radius = max(
+            self.app_config.min_brush_radius,
+            self.app_config.brush_radius - self.app_config.brush_radius_increment,
+        )
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -114,10 +128,18 @@ class DNDFogOfWarApp:
                     self.app_state.left_mouse_down = True
                 elif event.button == 3:  # right mouse button
                     self.app_state.right_mouse_down = True
-                elif event.button == 4:
-                    self.handle_mouse_wheel_up()
-                elif event.button == 5:
-                    self.handle_mouse_wheel_down()
+            elif event.type == pygame.MOUSEWHEEL:
+                keys = pygame.key.get_pressed()
+                if event.y > 0:  # mouse wheep up
+                    if keys[pygame.K_LSHIFT]:
+                        self.increase_brush_size()
+                    else:
+                        self.zoom_in()
+                else:
+                    if keys[pygame.K_LSHIFT]:
+                        self.decrease_brush_size()
+                    else:
+                        self.zoom_out()
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # left mouse button
                     self.app_state.left_mouse_down = False
