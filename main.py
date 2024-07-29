@@ -15,6 +15,7 @@ class DNDFogOfWarAppState:
 class DNDFogOfWarAppConfig:
     def __init__(self):
         self.brush_radius = 30
+        self.brush_radius_increment = 10
         self.image_movement_speed = 500
         self.zoom_in_scale = 1.1
         self.zoom_out_scale = 0.9
@@ -68,6 +69,38 @@ class DNDFogOfWarApp:
         resized_obj = pygame.transform.scale(obj, (new_obj_width, new_obj_height))
         return resized_obj
 
+    def handle_mouse_wheel_up(self):
+        self.image = pygame.transform.smoothscale(
+            self.image,
+            (
+                self.image.get_width() * self.app_config.zoom_in_scale,
+                self.image.get_height() * self.app_config.zoom_in_scale,
+            ),
+        )
+        self.black_layer = pygame.transform.scale(
+            self.black_layer,
+            (
+                self.black_layer.get_width() * self.app_config.zoom_in_scale,
+                self.black_layer.get_height() * self.app_config.zoom_in_scale,
+            ),
+        )
+
+    def handle_mouse_wheel_down(self):
+        self.image = pygame.transform.smoothscale(
+            self.image,
+            (
+                self.image.get_width() * self.app_config.zoom_out_scale,
+                self.image.get_height() * self.app_config.zoom_out_scale,
+            ),
+        )
+        self.black_layer = pygame.transform.scale(
+            self.black_layer,
+            (
+                self.black_layer.get_width() * self.app_config.zoom_out_scale,
+                self.black_layer.get_height() * self.app_config.zoom_out_scale,
+            ),
+        )
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -77,40 +110,10 @@ class DNDFogOfWarApp:
                     self.app_state.left_mouse_down = True
                 elif event.button == 3:  # right mouse button
                     self.app_state.right_mouse_down = True
-                elif event.button == 4:  # mouse wheel up
-                    self.image = pygame.transform.smoothscale(
-                        self.image,
-                        (
-                            self.image.get_width() * self.app_config.zoom_in_scale,
-                            self.image.get_height() * self.app_config.zoom_in_scale,
-                        ),
-                    )
-                    self.black_layer = pygame.transform.scale(
-                        self.black_layer,
-                        (
-                            self.black_layer.get_width()
-                            * self.app_config.zoom_in_scale,
-                            self.black_layer.get_height()
-                            * self.app_config.zoom_in_scale,
-                        ),
-                    )
-                elif event.button == 5:  # mouse wheel down
-                    self.image = pygame.transform.smoothscale(
-                        self.image,
-                        (
-                            self.image.get_width() * self.app_config.zoom_out_scale,
-                            self.image.get_height() * self.app_config.zoom_out_scale,
-                        ),
-                    )
-                    self.black_layer = pygame.transform.scale(
-                        self.black_layer,
-                        (
-                            self.black_layer.get_width()
-                            * self.app_config.zoom_out_scale,
-                            self.black_layer.get_height()
-                            * self.app_config.zoom_out_scale,
-                        ),
-                    )
+                elif event.button == 4:
+                    self.handle_mouse_wheel_up()
+                elif event.button == 5:
+                    self.handle_mouse_wheel_down()
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # left mouse button
                     self.app_state.left_mouse_down = False
