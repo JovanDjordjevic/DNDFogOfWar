@@ -1,6 +1,14 @@
 import pygame
 import sys
 from tkinter import Tk, filedialog
+import logging
+
+logger = logging.getLogger()
+
+if not logger.hasHandlers():
+    logger.addHandler(logging.StreamHandler())
+
+logger.setLevel(logging.INFO)
 
 
 class DNDFogOfWarAppState:
@@ -53,6 +61,7 @@ class DNDFogOfWarApp:
         self.black_layer.fill((0, 0, 0, 255))
 
     def resize_screen(self, new_screen_width, new_screen_height):
+        logger.info(f"Resizing screen. {new_screen_width=} {new_screen_height=}")
         self.screen = pygame.display.set_mode(
             (new_screen_width, new_screen_height), pygame.RESIZABLE
         )
@@ -68,20 +77,23 @@ class DNDFogOfWarApp:
             self.cleanup()
 
         image = pygame.image.load(image_path)
-        print(
-            f"Original image width: {image.get_width()}, height: {image.get_height()}"
-        )
 
         if not image:
             self.cleanup()
 
+        logger.info(
+            f"Loaded image: {image_path}. Original image width: {image.get_width()}, height: {image.get_height()}"
+        )
+
         return image
 
     def cleanup(self):
+        logger.info("Exiting application")
         pygame.quit()
         sys.exit()
 
     def zoom_in(self):
+        logger.info("Zooming in surfaces")
         self.image = pygame.transform.smoothscale(
             self.image,
             (
@@ -98,6 +110,7 @@ class DNDFogOfWarApp:
         )
 
     def zoom_out(self):
+        logger.info("Zooming out surfaces")
         self.image = pygame.transform.smoothscale(
             self.image,
             (
@@ -114,34 +127,42 @@ class DNDFogOfWarApp:
         )
 
     def rotate_all(self):
+        logger.info("Rotating surfaces")
         self.image = pygame.transform.rotate(self.image, 90)
         self.black_layer = pygame.transform.rotate(self.black_layer, 90)
 
     def increase_brush_size(self):
+        logger.info("Increasing brush size")
         self.app_state.brush_radius = min(
             self.app_config.max_brush_radius,
             self.app_state.brush_radius + self.app_config.brush_radius_increment,
         )
+        logger.info(f"New brush size: {self.app_state.brush_radius}")
 
     def decrease_brush_size(self):
+        logger.info("Decreasing brush size")
         self.app_state.brush_radius = max(
             self.app_config.min_brush_radius,
             self.app_state.brush_radius - self.app_config.brush_radius_increment,
         )
+        logger.info(f"New brush size: {self.app_state.brush_radius}")
 
     def handle_mouse_button_down_event(self, event):
+        logger.info("Registered mouse button down event")
         if event.button == 1:  # left mouse button
             self.app_state.left_mouse_down = True
         elif event.button == 3:  # right mouse button
             self.app_state.right_mouse_down = True
 
     def handle_mouse_button_up_event(self, event):
+        logger.info("Registered mouse button up event")
         if event.button == 1:  # left mouse button
             self.app_state.left_mouse_down = False
         elif event.button == 3:  # right mouse button
             self.app_state.right_mouse_down = False
 
     def handle_mouse_wheel_event(self, event):
+        logger.info("Registered mouse wheel")
         keys = pygame.key.get_pressed()
         if event.y > 0:  # mouse wheep up
             if keys[pygame.K_LSHIFT]:
@@ -155,6 +176,7 @@ class DNDFogOfWarApp:
                 self.zoom_out()
 
     def handle_key_down_event(self, event):
+        logger.info(f"Registered key press event. Key: {pygame.key.name(event.key)}")
         if event.key == pygame.K_r:
             self.rotate_all()
 
