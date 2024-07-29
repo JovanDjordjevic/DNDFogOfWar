@@ -10,11 +10,11 @@ class DNDFogOfWarAppState:
         self.right_mouse_down = False
         self.x_offset = 0
         self.y_offset = 0
+        self.brush_radius = 30
 
 
 class DNDFogOfWarAppConfig:
     def __init__(self):
-        self.brush_radius = 30
         self.min_brush_radius = 10
         self.max_brush_radius = 300
         self.brush_radius_increment = 10
@@ -22,24 +22,29 @@ class DNDFogOfWarAppConfig:
         self.zoom_in_scale = 1.1
         self.zoom_out_scale = 0.9
         self.framerate = 60
+        self.min_initial_screen_width = 1920
+        self.min_initial_screen_height = 1080
 
 
 class DNDFogOfWarApp:
     def __init__(self):
         pygame.init()
 
+        self.app_state = DNDFogOfWarAppState()
+        self.app_config = DNDFogOfWarAppConfig()
+
         self.image = self.load_image()
-        if not self.image:
-            self.cleanup()
 
         self.original_image_width = self.image.get_width()
         self.original_image_height = self.image.get_height()
 
-        self.screen_width = min(self.original_image_width, 1920)
-        self.screen_height = min(self.original_image_height, 1080)
-        self.screen = pygame.display.set_mode(
-            (self.screen_width, self.screen_height), pygame.RESIZABLE
+        self.screen_width = min(
+            self.original_image_width, self.app_config.min_initial_screen_width
         )
+        self.screen_height = min(
+            self.original_image_height, self.app_config.min_initial_screen_height
+        )
+        self.resize_screen(self.screen_width, self.screen_height)
         pygame.display.set_caption("DND Fog of War")
 
         self.black_layer = pygame.Surface(
@@ -47,29 +52,34 @@ class DNDFogOfWarApp:
         )
         self.black_layer.fill((0, 0, 0, 255))
 
-        self.app_state = DNDFogOfWarAppState()
-        self.app_config = DNDFogOfWarAppConfig()
+    def resize_screen(self, new_screen_width, new_screen_height):
+        self.screen = pygame.display.set_mode(
+            (new_screen_width, new_screen_height), pygame.RESIZABLE
+        )
 
     def load_image(self):
         Tk().withdraw()
+
         image_path = filedialog.askopenfilename(
             filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp;*.gif")]
         )
-        if image_path:
-            image = pygame.image.load(image_path)
-            print(
-                f"Original image width: {image.get_width()}, height: {image.get_height()}"
-            )
-            return image
-        return None
+
+        if not image_path:
+            self.cleanup()
+
+        image = pygame.image.load(image_path)
+        print(
+            f"Original image width: {image.get_width()}, height: {image.get_height()}"
+        )
+
+        if not image:
+            self.cleanup()
+
+        return image
 
     def cleanup(self):
         pygame.quit()
         sys.exit()
-
-    def resize_obj(self, obj, new_obj_width, new_obj_height):
-        resized_obj = pygame.transform.scale(obj, (new_obj_width, new_obj_height))
-        return resized_obj
 
     def zoom_in(self):
         self.image = pygame.transform.smoothscale(
@@ -108,51 +118,60 @@ class DNDFogOfWarApp:
         self.black_layer = pygame.transform.rotate(self.black_layer, 90)
 
     def increase_brush_size(self):
-        self.app_config.brush_radius = min(
+        self.app_state.brush_radius = min(
             self.app_config.max_brush_radius,
-            self.app_config.brush_radius + self.app_config.brush_radius_increment,
+            self.app_state.brush_radius + self.app_config.brush_radius_increment,
         )
 
     def decrease_brush_size(self):
-        self.app_config.brush_radius = max(
+        self.app_state.brush_radius = max(
             self.app_config.min_brush_radius,
-            self.app_config.brush_radius - self.app_config.brush_radius_increment,
+            self.app_state.brush_radius - self.app_config.brush_radius_increment,
         )
+
+    def handle_mouse_button_down_event(self, event):
+        if event.button == 1:  # left mouse button
+            self.app_state.left_mouse_down = True
+        elif event.button == 3:  # right mouse button
+            self.app_state.right_mouse_down = True
+
+    def handle_mouse_button_up_event(self, event):
+        if event.button == 1:  # left mouse button
+            self.app_state.left_mouse_down = False
+        elif event.button == 3:  # right mouse button
+            self.app_state.right_mouse_down = False
+
+    def handle_mouse_wheel_event(self, event):
+        keys = pygame.key.get_pressed()
+        if event.y > 0:  # mouse wheep up
+            if keys[pygame.K_LSHIFT]:
+                self.increase_brush_size()
+            else:
+                self.zoom_in()
+        else:
+            if keys[pygame.K_LSHIFT]:
+                self.decrease_brush_size()
+            else:
+                self.zoom_out()
+
+    def handle_key_down_event(self, event):
+        if event.key == pygame.K_r:
+            self.rotate_all()
 
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.app_state.running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # left mouse button
-                    self.app_state.left_mouse_down = True
-                elif event.button == 3:  # right mouse button
-                    self.app_state.right_mouse_down = True
-            elif event.type == pygame.MOUSEWHEEL:
-                keys = pygame.key.get_pressed()
-                if event.y > 0:  # mouse wheep up
-                    if keys[pygame.K_LSHIFT]:
-                        self.increase_brush_size()
-                    else:
-                        self.zoom_in()
-                else:
-                    if keys[pygame.K_LSHIFT]:
-                        self.decrease_brush_size()
-                    else:
-                        self.zoom_out()
-            elif event.type == pygame.MOUSEBUTTONUP:
-                if event.button == 1:  # left mouse button
-                    self.app_state.left_mouse_down = False
-                elif event.button == 3:  # right mouse button
-                    self.app_state.right_mouse_down = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    self.rotate_all()
             elif event.type == pygame.VIDEORESIZE:
-                screen_width, screen_height = event.w, event.h
-                self.screen = pygame.display.set_mode(
-                    (screen_width, screen_height), pygame.RESIZABLE
-                )
+                self.resize_screen(event.w, event.h)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                self.handle_mouse_button_down_event(event)
+            elif event.type == pygame.MOUSEBUTTONUP:
+                self.handle_mouse_button_up_event(event)
+            elif event.type == pygame.MOUSEWHEEL:
+                self.handle_mouse_wheel_event(event)
+            elif event.type == pygame.KEYDOWN:
+                self.handle_key_down_event(event)
 
     def handle_pressed_keys(self):
         keys = pygame.key.get_pressed()
@@ -175,7 +194,7 @@ class DNDFogOfWarApp:
                 self.black_layer,
                 (0, 0, 0, 0),
                 (mouse_x - self.app_state.x_offset, mouse_y - self.app_state.y_offset),
-                self.app_config.brush_radius,
+                self.app_state.brush_radius,
             )
 
         if self.app_state.right_mouse_down:
@@ -183,7 +202,7 @@ class DNDFogOfWarApp:
                 self.black_layer,
                 (0, 0, 0, 255),
                 (mouse_x - self.app_state.x_offset, mouse_y - self.app_state.y_offset),
-                self.app_config.brush_radius,
+                self.app_state.brush_radius,
             )
 
     def redraw_all(self):
