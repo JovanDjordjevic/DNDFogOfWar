@@ -101,6 +101,10 @@ class DNDFogOfWarApp:
             ),
         )
 
+    def rotate_all(self):
+        self.image = pygame.transform.rotate(self.image, 90)
+        self.black_layer = pygame.transform.rotate(self.black_layer, 90)
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -119,6 +123,9 @@ class DNDFogOfWarApp:
                     self.app_state.left_mouse_down = False
                 elif event.button == 3:  # right mouse button
                     self.app_state.right_mouse_down = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    self.rotate_all()
             elif event.type == pygame.VIDEORESIZE:
                 screen_width, screen_height = event.w, event.h
                 self.screen = pygame.display.set_mode(
