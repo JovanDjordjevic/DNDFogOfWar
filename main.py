@@ -19,6 +19,7 @@ class DNDFogOfWarAppState:
         self.x_offset = 0
         self.y_offset = 0
         self.brush_radius = 30
+        self.current_zoom_level = 100
 
 
 class DNDFogOfWarAppConfig:
@@ -27,9 +28,10 @@ class DNDFogOfWarAppConfig:
         self.max_brush_radius = 300
         self.brush_radius_increment = 10
         self.image_movement_speed = 500
-        self.zoom_in_scale = 1.1
-        self.zoom_out_scale = 0.9
         self.framerate = 60
+        self.min_zoom_level = 25
+        self.max_zoom_level = 175
+        self.zoom_step = 25
         self.min_initial_screen_width = 1920
         self.min_initial_screen_height = 1080
 
@@ -41,7 +43,12 @@ class DNDFogOfWarApp:
         self.app_state = DNDFogOfWarAppState()
         self.app_config = DNDFogOfWarAppConfig()
 
-        self.image = self.load_image()
+        # load an image and create differently scaled copies of the same image
+        # to use in order to avoid detail loss when zooming in/out
+        self.zoom_level_to_image = {}
+        self.prepare_images()
+
+        self.image = self.zoom_level_to_image[100]
 
         self.original_image_width = self.image.get_width()
         self.original_image_height = self.image.get_height()
@@ -87,43 +94,76 @@ class DNDFogOfWarApp:
 
         return image
 
+    def prepare_images(self):
+        self.original_image = self.load_image()
+        original_image_width = self.original_image.get_width()
+        original_image_height = self.original_image.get_height()
+
+        for i in range(
+            self.app_config.min_zoom_level,
+            self.app_config.max_zoom_level + 1,
+            self.app_config.zoom_step,
+        ):
+            scale_factor = i * 0.01
+            self.zoom_level_to_image[i] = pygame.transform.smoothscale(
+                self.original_image,
+                (
+                    original_image_width * scale_factor,
+                    original_image_height * scale_factor,
+                ),
+            )
+
+        logger.info(
+            f"Prepared {len(self.zoom_level_to_image)} different zoom levels of the original image"
+        )
+
     def cleanup(self):
         logger.info("Exiting application")
         pygame.quit()
         sys.exit()
 
-    def zoom_in(self):
-        logger.info("Zooming in surfaces")
-        self.image = pygame.transform.smoothscale(
-            self.image,
-            (
-                self.image.get_width() * self.app_config.zoom_in_scale,
-                self.image.get_height() * self.app_config.zoom_in_scale,
-            ),
-        )
+    def zoom_surfaces(self, new_zoom_level):
+        self.app_state.current_zoom_level = new_zoom_level
+
+        self.image = self.zoom_level_to_image[self.app_state.current_zoom_level]
         self.black_layer = pygame.transform.scale(
             self.black_layer,
             (
-                self.black_layer.get_width() * self.app_config.zoom_in_scale,
-                self.black_layer.get_height() * self.app_config.zoom_in_scale,
+                self.image.get_width(),
+                self.image.get_height(),
             ),
         )
 
-    def zoom_out(self):
-        logger.info("Zooming out surfaces")
-        self.image = pygame.transform.smoothscale(
-            self.image,
-            (
-                self.image.get_width() * self.app_config.zoom_out_scale,
-                self.image.get_height() * self.app_config.zoom_out_scale,
-            ),
+    def zoom_in(self):
+        logger.info(
+            f"Zooming in surfaces. Current zoom level: {self.app_state.current_zoom_level}"
         )
-        self.black_layer = pygame.transform.scale(
-            self.black_layer,
-            (
-                self.black_layer.get_width() * self.app_config.zoom_out_scale,
-                self.black_layer.get_height() * self.app_config.zoom_out_scale,
-            ),
+
+        new_zoom_level = self.app_state.current_zoom_level + self.app_config.zoom_step
+        if new_zoom_level > self.app_config.max_zoom_level:
+            logger.info("Zoom level already at maximum. Ignoring zoom in input")
+            return
+
+        self.zoom_surfaces(new_zoom_level)
+
+        logger.info(
+            f"Zoomed in surfaces. New current zoom level: {self.app_state.current_zoom_level}"
+        )
+
+    def zoom_out(self):
+        logger.info(
+            f"Zooming out surfaces. Current zoom level: {self.app_state.current_zoom_level}"
+        )
+
+        new_zoom_level = self.app_state.current_zoom_level - self.app_config.zoom_step
+        if new_zoom_level < self.app_config.min_zoom_level:
+            logger.info("Zoom level already at minimum. Ignoring zoom out input")
+            return
+
+        self.zoom_surfaces(new_zoom_level)
+
+        logger.info(
+            f"Zoomed out surfaces. New current zoom level: {self.app_state.current_zoom_level}"
         )
 
     def rotate_all(self):
