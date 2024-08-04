@@ -20,6 +20,7 @@ class DNDFogOfWarAppState:
         self.y_offset = 0
         self.brush_radius = 30
         self.current_zoom_level = 100
+        self.displaying_legend = False
 
 
 class DNDFogOfWarAppConfig:
@@ -34,6 +35,7 @@ class DNDFogOfWarAppConfig:
         self.zoom_step = 25
         self.min_initial_screen_width = 1920
         self.min_initial_screen_height = 1080
+        self.legend_font_size = 36
 
 
 class DNDFogOfWarApp:
@@ -66,6 +68,19 @@ class DNDFogOfWarApp:
             (self.original_image_width, self.original_image_height), pygame.SRCALPHA
         )
         self.black_layer.fill((0, 0, 0, 255))
+
+        self.legend_font = pygame.font.Font(None, self.app_config.legend_font_size)
+        self.legent_text_lines = [
+            "Legend:",
+            "Toggle legend: L" "Move image around: Arrow keys",
+            "Zoom in: MW up",
+            "Zoom out: MW down",
+            "Erase black layer: LMB",
+            "Draw black layer: RMB",
+            "Increase brush size: Shift + MW up",
+            "Decrease brush size: Shift + MW down",
+            "Rotate image 90 degrees: R",
+        ]
 
     def resize_screen(self, new_screen_width, new_screen_height):
         logger.info(f"Resizing screen. {new_screen_width=} {new_screen_height=}")
@@ -171,6 +186,10 @@ class DNDFogOfWarApp:
         self.image = pygame.transform.rotate(self.image, 90)
         self.black_layer = pygame.transform.rotate(self.black_layer, 90)
 
+    def toggle_legend(self):
+        self.app_state.displaying_legend = not self.app_state.displaying_legend
+        logger.info(f"Displaying legend: {self.app_state.displaying_legend}")
+
     def increase_brush_size(self):
         logger.info("Increasing brush size")
         self.app_state.brush_radius = min(
@@ -219,6 +238,8 @@ class DNDFogOfWarApp:
         logger.info(f"Registered key press event. Key: {pygame.key.name(event.key)}")
         if event.key == pygame.K_r:
             self.rotate_all()
+        elif event.key == pygame.K_l:
+            self.toggle_legend()
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -274,6 +295,12 @@ class DNDFogOfWarApp:
         self.screen.blit(
             self.black_layer, (self.app_state.x_offset, self.app_state.y_offset)
         )
+
+        if self.app_state.displaying_legend:
+            for i, text in enumerate(self.legent_text_lines):
+                control_text = self.legend_font.render(text, True, (255, 255, 255))
+                self.screen.blit(control_text, (20, 20 + i * 30))
+
         pygame.display.flip()
 
     def run(self):
