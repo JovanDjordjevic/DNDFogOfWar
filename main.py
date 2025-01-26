@@ -70,15 +70,14 @@ class DNDFogOfWarApp:
         self.black_layer.fill((0, 0, 0, 255))
 
         self.legend_font = pygame.font.Font(None, self.app_config.legend_font_size)
-        self.legent_text_lines = [
+        self.legend_text_lines = [
             "Legend:",
-            "Toggle legend: L" "Move image around: Arrow keys",
-            "Zoom in: MW up",
-            "Zoom out: MW down",
-            "Erase black layer: LMB",
-            "Draw black layer: RMB",
-            "Increase brush size: Shift + MW up",
-            "Decrease brush size: Shift + MW down",
+            "Toggle legend: L",
+            "Move image around: Arrow keys",
+            "Adjust zoom: MWheel up/down",
+            "Remove part of black layer: LMB",
+            "Add back part of black layer: RMB",
+            "Adjust brush size: Shift + MW up/down",
             "Rotate image 90 degrees: R",
         ]
 
@@ -297,7 +296,7 @@ class DNDFogOfWarApp:
         )
 
         if self.app_state.displaying_legend:
-            for i, text in enumerate(self.legent_text_lines):
+            for i, text in enumerate(self.legend_text_lines):
                 control_text = self.legend_font.render(text, True, (255, 255, 255))
                 self.screen.blit(control_text, (20, 20 + i * 30))
 
